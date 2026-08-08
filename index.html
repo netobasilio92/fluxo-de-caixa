@@ -43,13 +43,12 @@
     .calculated-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
 
     .btn { display: block; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; font-size: 1rem; }
-    .btn-primary { background: var(--primary); color: white; margin-top: 8px; }
     .btn-add { background: #1976d2; color: white; margin-bottom: 12px; }
 
     .result-card { text-align: center; padding: 20px; border-radius: 8px; }
     .result-card.positive { background: var(--primary-light); border: 2px solid var(--primary); color: var(--primary); }
     .result-card.negative { background: var(--danger-light); border: 2px solid var(--danger); color: var(--danger); }
-    .result-value { font-size: 2rem; font-weight: bold; margin: 10px 0; }
+    .result-value { font-size: 1.8rem; font-weight: bold; margin: 10px 0; }
 
     .summary-item { display: flex; justify-content: space-between; padding: 12px; background: white; border-radius: 6px; margin-bottom: 8px; border: 1px solid var(--border); }
   </style>
@@ -112,6 +111,24 @@
       }
     }
 
+    function formatCurrencyValue(value) {
+      let digits = value.replace(/\D/g, '');
+      if (!digits) return '';
+      let floatVal = parseFloat(digits) / 100;
+      return floatVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function parseFormattedValue(formattedStr) {
+      if (!formattedStr) return 0;
+      let cleanStr = formattedStr.replace(/\./g, '').replace(',', '.');
+      return parseFloat(cleanStr) || 0;
+    }
+
+    function handleMaskInput(input, cardId) {
+      input.value = formatCurrencyValue(input.value);
+      calculateCard(cardId);
+    }
+
     function addEntryCard(type) {
       cardCount++;
       const container = document.getElementById(`container-${type}`);
@@ -145,21 +162,21 @@
           <div class="row">
             <div class="col form-group">
               <label>Valor Saca (R$)</label>
-              <input type="number" step="0.01" class="input-preco" oninput="calculateCard('${card.id}')">
+              <input type="tel" inputmode="numeric" placeholder="0,00" class="input-preco" oninput="handleMaskInput(this, '${card.id}')">
             </div>
             <div class="col form-group">
               <label>Quantidade (Sacas)</label>
-              <input type="number" class="input-qtd" oninput="calculateCard('${card.id}')">
+              <input type="tel" inputmode="numeric" placeholder="0" class="input-qtd" oninput="handleMaskInput(this, '${card.id}')">
             </div>
           </div>
           <div class="row">
             <div class="col form-group">
               <label>Desc. Funrural (%)</label>
-              <input type="number" step="0.01" value="1.5" class="input-funrural" oninput="calculateCard('${card.id}')">
+              <input type="tel" inputmode="decimal" value="1.5" class="input-funrural" oninput="calculateCard('${card.id}')">
             </div>
             <div class="col form-group">
               <label>Desc. Fethab (R$/sc)</label>
-              <input type="number" step="0.01" value="0.00" class="input-fethab" oninput="calculateCard('${card.id}')">
+              <input type="tel" inputmode="numeric" value="0,00" class="input-fethab" oninput="handleMaskInput(this, '${card.id}')">
             </div>
           </div>
           <div class="calculated-box">
@@ -172,7 +189,7 @@
         <div class="cash-fields" id="cash-fields-${card.id}">
           <div class="form-group">
             <label>Valor Total (R$)</label>
-            <input type="number" step="0.01" class="input-valor-dinheiro" oninput="calculateCard('${card.id}')">
+            <input type="tel" inputmode="numeric" placeholder="0,00" class="input-valor-dinheiro" oninput="handleMaskInput(this, '${card.id}')">
           </div>
         </div>
 
@@ -211,10 +228,10 @@
       let totalLiquido = 0;
 
       if (tipo === 'soja' || tipo === 'milho') {
-        const preco = parseFloat(card.querySelector('.input-preco').value) || 0;
-        const qtd = parseFloat(card.querySelector('.input-qtd').value) || 0;
+        const preco = parseFormattedValue(card.querySelector('.input-preco').value);
+        const qtd = parseFormattedValue(card.querySelector('.input-qtd').value);
         const funruralPct = parseFloat(card.querySelector('.input-funrural').value) || 0;
-        const fethabValor = parseFloat(card.querySelector('.input-fethab').value) || 0;
+        const fethabValor = parseFormattedValue(card.querySelector('.input-fethab').value);
 
         const descFunruralSaca = preco * (funruralPct / 100);
         const precoLivreSaca = preco - descFunruralSaca - fethabValor;
@@ -224,7 +241,7 @@
         card.querySelector('.val-livre-sc').innerText = formatCurrency(precoLivreSaca);
         card.querySelector('.val-descontos').innerText = formatCurrency(totalDescontos);
       } else {
-        totalLiquido = parseFloat(card.querySelector('.input-valor-dinheiro').value) || 0;
+        totalLiquido = parseFormattedValue(card.querySelector('.input-valor-dinheiro').value);
       }
 
       card.querySelector('.val-total-liquido').innerText = formatCurrency(totalLiquido);
