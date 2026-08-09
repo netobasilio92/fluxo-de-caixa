@@ -21,8 +21,8 @@
 
     header { background: var(--primary); color: white; padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 16px; font-weight: bold; font-size: 1.2rem; }
 
-    .nav-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-    .tab-btn { flex: 1; padding: 12px 8px; border: none; background: #e0e0e0; color: #555; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+    .nav-tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; }
+    .tab-btn { flex: 1; padding: 10px 4px; border: none; background: #e0e0e0; color: #555; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; white-space: nowrap; text-align: center; }
     .tab-btn.active { background: var(--primary); color: white; }
 
     .tab-content { display: none; }
@@ -58,24 +58,31 @@
   <header>Fluxo de Caixa Agrícola</header>
 
   <div class="nav-tabs">
-    <button class="tab-btn active" onclick="switchTab('entradas')">1. Entradas</button>
-    <button class="tab-btn" onclick="switchTab('saidas')">2. Saídas</button>
-    <button class="tab-btn" onclick="switchTab('resultado')">3. Resultado</button>
+    <button class="tab-btn active" onclick="switchTab('entradas-reais')">1. Entradas (R$)</button>
+    <button class="tab-btn" onclick="switchTab('entradas-graos')">2. Entrada Grãos</button>
+    <button class="tab-btn" onclick="switchTab('saidas')">3. Saídas (R$)</button>
+    <button class="tab-btn" onclick="switchTab('resultado')">4. Resultado</button>
   </div>
 
-  <!-- ABA 1: ENTRADAS -->
-  <div id="tab-entradas" class="tab-content active">
-    <button class="btn btn-add" onclick="addEntryCard('entradas')">+ Adicionar Novo Recebimento</button>
-    <div id="container-entradas"></div>
+  <!-- ABA 1: ENTRADAS (R$) -->
+  <div id="tab-entradas-reais" class="tab-content active">
+    <button class="btn btn-add" onclick="addReaisCard('entradas-reais')">+ Adicionar Recebimento (R$)</button>
+    <div id="container-entradas-reais"></div>
   </div>
 
-  <!-- ABA 2: SAÍDAS -->
+  <!-- ABA 2: ENTRADA GRÃOS -->
+  <div id="tab-entradas-graos" class="tab-content">
+    <button class="btn btn-add" onclick="addGraosCard()">+ Adicionar Venda de Grãos</button>
+    <div id="container-entradas-graos"></div>
+  </div>
+
+  <!-- ABA 3: SAÍDAS (R$) -->
   <div id="tab-saidas" class="tab-content">
-    <button class="btn btn-add" onclick="addEntryCard('saidas')">+ Adicionar Novo Pagamento</button>
+    <button class="btn btn-add" onclick="addReaisCard('saidas')">+ Adicionar Novo Pagamento</button>
     <div id="container-saidas"></div>
   </div>
 
-  <!-- ABA 3: RESULTADO -->
+  <!-- ABA 4: RESULTADO -->
   <div id="tab-resultado" class="tab-content">
     <div id="result-box" class="result-card positive">
       <div>SALDO FINAL DO PERÍODO</div>
@@ -85,8 +92,12 @@
 
     <div style="margin-top: 16px;">
       <div class="summary-item">
-        <span>Total Entradas:</span>
-        <strong id="total-entradas" style="color: var(--primary);">R$ 0,00</strong>
+        <span>Entradas (R$):</span>
+        <strong id="total-entradas-reais" style="color: var(--primary);">R$ 0,00</strong>
+      </div>
+      <div class="summary-item">
+        <span>Entradas (Grãos Líquido):</span>
+        <strong id="total-entradas-graos" style="color: var(--primary);">R$ 0,00</strong>
       </div>
       <div class="summary-item">
         <span>Total Saídas:</span>
@@ -102,8 +113,8 @@
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       
-      const btnIndex = tabName === 'entradas' ? 0 : tabName === 'saidas' ? 1 : 2;
-      document.querySelectorAll('.tab-btn')[btnIndex].classList.add('active');
+      const tabMap = { 'entradas-reais': 0, 'entradas-graos': 1, 'saidas': 2, 'resultado': 3 };
+      document.querySelectorAll('.tab-btn')[tabMap[tabName]].classList.add('active');
       document.getElementById(`tab-${tabName}`).classList.add('active');
 
       if(tabName === 'resultado') {
@@ -129,70 +140,87 @@
       calculateCard(cardId);
     }
 
-    function addEntryCard(type) {
+    // Adiciona card exclusivo em Reais (Entradas R$ ou Saídas)
+    function addReaisCard(type) {
       cardCount++;
       const container = document.getElementById(`container-${type}`);
       const card = document.createElement('div');
       card.className = 'card';
       card.id = `card-${cardCount}`;
-      card.dataset.type = type;
+      card.dataset.cardType = 'reais';
+      card.dataset.section = type;
 
       card.innerHTML = `
         <div class="card-title">
-          <span>${type === 'entradas' ? 'Recebimento' : 'Pagamento'} #${cardCount}</span>
+          <span>${type === 'entradas-reais' ? 'Recebimento R$' : 'Pagamento R$'} #${cardCount}</span>
           <span style="color: var(--danger); cursor: pointer;" onclick="removeCard('${card.id}')">✕ Excluir</span>
         </div>
         <div class="form-group">
           <label>Descrição / Origem</label>
-          <input type="text" placeholder="Ex: ${type === 'entradas' ? 'RECEBER SOJA' : 'COMPRA DIESEL'}" class="input-desc">
+          <input type="text" placeholder="Ex: ${type === 'entradas-reais' ? 'VENDA DE MAQUINÁRIO / PIX' : 'COMPRA DIESEL'}" class="input-desc">
+        </div>
+        <div class="form-group">
+          <label>Valor Total (R$)</label>
+          <input type="tel" inputmode="numeric" placeholder="0,00" class="input-valor-dinheiro" oninput="handleMaskInput(this, '${card.id}')">
+        </div>
+        <div style="margin-top: 8px; font-weight: bold; text-align: right;">
+          Total: <span class="val-total-liquido" style="color: ${type === 'saidas' ? 'var(--danger)' : 'var(--primary)'};">R$ 0,00</span>
+        </div>
+      `;
+
+      container.appendChild(card);
+    }
+
+    // Adiciona card exclusivo para Grãos
+    function addGraosCard() {
+      cardCount++;
+      const container = document.getElementById('container-entradas-graos');
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.id = `card-${cardCount}`;
+      card.dataset.cardType = 'graos';
+      card.dataset.section = 'entradas-graos';
+
+      card.innerHTML = `
+        <div class="card-title">
+          <span>Venda de Grãos #${cardCount}</span>
+          <span style="color: var(--danger); cursor: pointer;" onclick="removeCard('${card.id}')">✕ Excluir</span>
+        </div>
+        <div class="form-group">
+          <label>Descrição / Comprador</label>
+          <input type="text" placeholder="Ex: CONTRATO SOJA CARGILL" class="input-desc">
+        </div>
+        <div class="form-group">
+          <label>Cultura</label>
+          <select class="select-tipo" onchange="calculateCard('${card.id}')">
+            <option value="soja">Soja (Sacos)</option>
+            <option value="milho">Milho (Sacos)</option>
+          </select>
         </div>
         <div class="row">
           <div class="col form-group">
-            <label>Tipo de Operação</label>
-            <select class="select-tipo" onchange="toggleCropFields('${card.id}')">
-              <option value="dinheiro">Dinheiro / PIX</option>
-              <option value="soja">Soja (Sacos)</option>
-              <option value="milho">Milho (Sacos)</option>
-            </select>
+            <label>Valor Saca (R$)</label>
+            <input type="tel" inputmode="numeric" placeholder="0,00" class="input-preco" oninput="handleMaskInput(this, '${card.id}')">
+          </div>
+          <div class="col form-group">
+            <label>Quantidade (Sacas)</label>
+            <input type="tel" inputmode="numeric" placeholder="0" class="input-qtd" oninput="handleMaskInput(this, '${card.id}')">
           </div>
         </div>
-
-        <!-- Campos para Grãos -->
-        <div class="crop-fields" id="crop-fields-${card.id}" style="display: none;">
-          <div class="row">
-            <div class="col form-group">
-              <label>Valor Saca (R$)</label>
-              <input type="tel" inputmode="numeric" placeholder="0,00" class="input-preco" oninput="handleMaskInput(this, '${card.id}')">
-            </div>
-            <div class="col form-group">
-              <label>Quantidade (Sacas)</label>
-              <input type="tel" inputmode="numeric" placeholder="0" class="input-qtd" oninput="handleMaskInput(this, '${card.id}')">
-            </div>
+        <div class="row">
+          <div class="col form-group">
+            <label>Desc. Funrural (%)</label>
+            <input type="tel" inputmode="decimal" value="1.5" class="input-funrural" oninput="calculateCard('${card.id}')">
           </div>
-          <div class="row">
-            <div class="col form-group">
-              <label>Desc. Funrural (%)</label>
-              <input type="tel" inputmode="decimal" value="1.5" class="input-funrural" oninput="calculateCard('${card.id}')">
-            </div>
-            <div class="col form-group">
-              <label>Desc. Fethab (R$/sc)</label>
-              <input type="tel" inputmode="numeric" value="0,00" class="input-fethab" oninput="handleMaskInput(this, '${card.id}')">
-            </div>
-          </div>
-          <div class="calculated-box">
-            <div class="calculated-row"><span>Valor Livre / Saca:</span><strong class="val-livre-sc">R$ 0,00</strong></div>
-            <div class="calculated-row"><span>Total Descontos:</span><span class="val-descontos">R$ 0,00</span></div>
+          <div class="col form-group">
+            <label>Desc. Fethab (R$/sc)</label>
+            <input type="tel" inputmode="numeric" value="0,00" class="input-fethab" oninput="handleMaskInput(this, '${card.id}')">
           </div>
         </div>
-
-        <!-- Campos para Dinheiro -->
-        <div class="cash-fields" id="cash-fields-${card.id}">
-          <div class="form-group">
-            <label>Valor Total (R$)</label>
-            <input type="tel" inputmode="numeric" placeholder="0,00" class="input-valor-dinheiro" oninput="handleMaskInput(this, '${card.id}')">
-          </div>
+        <div class="calculated-box">
+          <div class="calculated-row"><span>Valor Livre / Saca:</span><strong class="val-livre-sc">R$ 0,00</strong></div>
+          <div class="calculated-row"><span>Total Descontos:</span><span class="val-descontos">R$ 0,00</span></div>
         </div>
-
         <div style="margin-top: 8px; font-weight: bold; text-align: right;">
           Total Líquido: <span class="val-total-liquido" style="color: var(--primary);">R$ 0,00</span>
         </div>
@@ -206,28 +234,12 @@
       calculateTotals();
     }
 
-    function toggleCropFields(cardId) {
-      const card = document.getElementById(cardId);
-      const tipo = card.querySelector('.select-tipo').value;
-      const cropFields = card.querySelector(`#crop-fields-${cardId}`);
-      const cashFields = card.querySelector(`#cash-fields-${cardId}`);
-
-      if (tipo === 'soja' || tipo === 'milho') {
-        cropFields.style.display = 'block';
-        cashFields.style.display = 'none';
-      } else {
-        cropFields.style.display = 'none';
-        cashFields.style.display = 'block';
-      }
-      calculateCard(cardId);
-    }
-
     function calculateCard(cardId) {
       const card = document.getElementById(cardId);
-      const tipo = card.querySelector('.select-tipo').value;
+      const isGraos = card.dataset.cardType === 'graos';
       let totalLiquido = 0;
 
-      if (tipo === 'soja' || tipo === 'milho') {
+      if (isGraos) {
         const preco = parseFormattedValue(card.querySelector('.input-preco').value);
         const qtd = parseFormattedValue(card.querySelector('.input-qtd').value);
         const funruralPct = parseFloat(card.querySelector('.input-funrural').value) || 0;
@@ -249,20 +261,27 @@
     }
 
     function calculateTotals() {
-      let totalEntradas = 0;
+      let totalEntradasReais = 0;
+      let totalEntradasGraos = 0;
       let totalSaidas = 0;
 
-      document.querySelectorAll('#container-entradas .card').forEach(card => {
-        totalEntradas += parseFloat(card.dataset.valorLiquido) || 0;
+      document.querySelectorAll('#container-entradas-reais .card').forEach(card => {
+        totalEntradasReais += parseFloat(card.dataset.valorLiquido) || 0;
+      });
+
+      document.querySelectorAll('#container-entradas-graos .card').forEach(card => {
+        totalEntradasGraos += parseFloat(card.dataset.valorLiquido) || 0;
       });
 
       document.querySelectorAll('#container-saidas .card').forEach(card => {
         totalSaidas += parseFloat(card.dataset.valorLiquido) || 0;
       });
 
-      const saldoFinal = totalEntradas - totalSaidas;
+      const totalEntradasGeral = totalEntradasReais + totalEntradasGraos;
+      const saldoFinal = totalEntradasGeral - totalSaidas;
 
-      document.getElementById('total-entradas').innerText = formatCurrency(totalEntradas);
+      document.getElementById('total-entradas-reais').innerText = formatCurrency(totalEntradasReais);
+      document.getElementById('total-entradas-graos').innerText = formatCurrency(totalEntradasGraos);
       document.getElementById('total-saidas').innerText = formatCurrency(totalSaidas);
       document.getElementById('total-saldo').innerText = formatCurrency(saldoFinal);
 
@@ -282,8 +301,9 @@
       return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
-    addEntryCard('entradas');
-    addEntryCard('saidas');
+    addReaisCard('entradas-reais');
+    addGraosCard();
+    addReaisCard('saidas');
   </script>
 </body>
 </html>
